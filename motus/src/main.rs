@@ -119,10 +119,12 @@ impl App {
         (from + 1..self.len).find(|&i| !self.locked[i]).unwrap_or(self.len)
     }
     fn prev_free_before(&self, from: usize) -> usize {
-        (0..=from)
+        // from peut être la sentinelle self.len (saisie complète) : borner
+        let hi = self.len.min(from + 1) - 1;
+        (0..=hi)
             .rev()
             .find(|&i| !self.locked[i])
-            .unwrap_or_else(|| self.first_free())
+            .unwrap_or(self.len)
     }
 
     fn type_rune(&mut self, r: char) {
