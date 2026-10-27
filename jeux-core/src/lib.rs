@@ -47,9 +47,9 @@ pub mod dico {
     //! Dictionnaire embarqué et filtrage des secrets.
 
     /// Mots valides (toutes formes), normalisés sans accents, 5-9 lettres.
-    pub const MOTS: &str = include_str!("../../motus-rust/data/mots.txt");
+    pub const MOTS: &str = include_str!("../data/mots.txt");
     /// Secrets : noms + infinitifs + participes, peu fréquents.
-    pub const SECRETS: &str = include_str!("../../motus-rust/data/secrets.txt");
+    pub const SECRETS: &str = include_str!("../data/secrets.txt");
 
     /// Liste des mots par longueur, normalisés.
     pub fn mots() -> std::collections::HashMap<usize, Vec<String>> {

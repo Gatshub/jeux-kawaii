@@ -1,9 +1,2 @@
 /target
-*/target/
-# dépôts indépendants (chacun a son propre repo GitHub)
-/fubuki-kawaii/
-/motus-go/
-/motus-kawaii/
-/motus-rust/
-/space-invaders-kawaii/
-/takuzu-kawaii/
+/_archives/
