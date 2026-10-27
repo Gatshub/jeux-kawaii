@@ -67,3 +67,10 @@ englobante du contenu visible) produit les mesures à comparer.
    appliquer check_center, comparer aux tolérances ±1.
 3. Vérifier l'ordre des éléments contre la spec par jeu.
 4. Signaler tout écart avec la mesure qui le prouve.
+
+## Audit du 2026-10-27 (agent auditeur indépendant)
+
+10 écrans vérifiés (menu + jeu ×4 jeux, fins motus/invaders) : 9 OK
+immédiatement ; dernier écart (motus jeu, -2 lignes) corrigé dans la foulée.
+Tous les écrans sont dans la tolérance ±1. Les binaires installés sont
+vérifiés par md5 avant chaque audit.
