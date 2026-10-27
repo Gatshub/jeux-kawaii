@@ -5,6 +5,7 @@ members = [
     "motus",
     "fubuki",
     "takuzu",
+    "invaders",
 ]
 
 [workspace.package]
