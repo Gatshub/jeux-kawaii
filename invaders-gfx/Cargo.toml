@@ -1,0 +1,11 @@
+[package]
+name = "invaders-gfx"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+macroquad = "0.4"
+rand.workspace = true
+jeux-core = { path = "../jeux-core" }
