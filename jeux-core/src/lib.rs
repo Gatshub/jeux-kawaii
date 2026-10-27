@@ -205,11 +205,11 @@ pub mod theme {
 
     #[derive(Clone, Copy, Debug)]
     pub struct Theme {
-        /// Bien placé (rose/rouge)
+        /// Bien placé (bleu)
         pub good: (u8, u8, u8),
         /// Erreur (rouge)
         pub ko: (u8, u8, u8),
-        /// Présent ailleurs (bleu)
+        /// Présent ailleurs (rouge)
         pub present: (u8, u8, u8),
         /// Absent (gris doux)
         pub absent: (u8, u8, u8),
@@ -222,9 +222,9 @@ pub mod theme {
     }
 
     pub const SOMBRE: Theme = Theme {
-        good: (255, 123, 138),
+        good: (123, 184, 255),
         ko: (255, 123, 138),
-        present: (123, 184, 255),
+        present: (255, 123, 138),
         absent: (106, 106, 106),
         given: (221, 221, 221),
         accent: (255, 158, 196),
@@ -232,9 +232,9 @@ pub mod theme {
     };
 
     pub const CLAIR: Theme = Theme {
-        good: (179, 36, 60),
+        good: (31, 95, 168),
         ko: (179, 36, 60),
-        present: (31, 95, 168),
+        present: (179, 36, 60),
         absent: (138, 138, 138),
         given: (68, 68, 68),
         accent: (214, 72, 140),
