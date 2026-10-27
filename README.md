@@ -23,6 +23,8 @@ pour tout.
 ├── jeux-core/          # briques partagées
 │   └── src/lib.rs      #   score, dico, wiki, theme
 ├── motus/              # Motus (TUI, ratatui)
+├── fubuki/             # Fubuki (TUI, ratatui)
+├── takuzu/             # Takuzu (TUI, ratatui)
 ├── motus-rust/         # ancien motus standalone (→ remplacé par motus/)
 ├── motus-go/           # variante Go (référence comparaison)
 ├── motus-kawaii/       # variante Ruby (référence gameplay)
@@ -57,7 +59,28 @@ cargo run -p motus --release
 
 ### À venir
 
-- fubuki, takuzu (portage depuis Go)
+### fubuki (TUI)
+
+Grille 3×3, chiffres 1-9, sommes de lignes/colonnes vérifiées en continu
+(= verte si correcte, rouge si fausse), palette des chiffres restants,
+3 niveaux (2/1/0 indices).
+
+```bash
+cargo run -p fubuki --release
+```
+
+### takuzu (TUI)
+
+Binairo : grilles 6×6 à 10×10, pas de triple, équilibre 0/1, lignes et
+colonnes uniques. Génération à solution unique (backtracking + propagation),
+gouttière ✓/✗ par ligne et colonne, 3 niveaux.
+
+```bash
+cargo run -p takuzu --release
+```
+
+### À venir
+
 - space invaders (portage depuis Ruby)
 - premier jeu graphique (macroquad)
 
@@ -77,8 +100,8 @@ cargo run -p motus --release
 ## Historique
 
 La collection a grandi par portages : Ruby + Charm Ruby (motus, invaders),
-Go + Bubble Tea (fubuki, takuzu, motus), Rust + Ratatui (motus). Les
-variantes Ruby/Go restent dans le dépôt comme références — les nouvelles
-versions sont Rust.
+Go + Bubble Tea (fubuki, takuzu, motus), puis Rust + Ratatui (motus, fubuki,
+takuzu). Les variantes Ruby/Go restent des dépôts indépendants comme
+références — la stack officielle est maintenant Rust.
 
 [♪](https://github.com/Gatshub)

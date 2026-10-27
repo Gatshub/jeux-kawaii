@@ -3,6 +3,8 @@ resolver = "2"
 members = [
     "jeux-core",
     "motus",
+    "fubuki",
+    "takuzu",
 ]
 
 [workspace.package]
