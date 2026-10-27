@@ -1,4 +1,5 @@
 //! Motus kawaii — Ratatui
+use jeux_core::theme;
 use crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
@@ -253,21 +254,13 @@ impl App {
     }
 
     fn colors(&self) -> (Color, Color, Color, Color) {
-        if self.dark {
-            (
-                Color::Rgb(255, 123, 138),
-                Color::Rgb(123, 184, 255),
-                Color::Rgb(106, 106, 106),
-                Color::Rgb(221, 221, 221),
-            )
-        } else {
-            (
-                Color::Rgb(179, 36, 60),
-                Color::Rgb(31, 95, 168),
-                Color::Rgb(138, 138, 138),
-                Color::Rgb(68, 68, 68),
-            )
-        }
+        let t = if self.dark { theme::SOMBRE } else { theme::CLAIR };
+        (
+            Color::Rgb(t.good.0, t.good.1, t.good.2),
+            Color::Rgb(t.present.0, t.present.1, t.present.2),
+            Color::Rgb(t.absent.0, t.absent.1, t.absent.2),
+            Color::Rgb(t.given.0, t.given.1, t.given.2),
+        )
     }
 }
 
