@@ -285,6 +285,31 @@ impl SplitQuote for str {
     }
 }
 
+/// Coupe un texte par mots à `max` colonnes (pas de mot tronqué).
+fn wrap_text(s: &str, max: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for w in s.split_whitespace() {
+        let len = cur.chars().count() + 1 + w.chars().count();
+        if !cur.is_empty() && len > max {
+            out.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.push_str(w);
+        while cur.chars().count() > max {
+            let cut: String = cur.chars().take(max).collect();
+            out.push(cut);
+            cur = cur.chars().skip(max).collect();
+        }
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
 fn unescape_json(s: &str) -> String {
     let mut out = String::new();
     let mut it = s.chars();
@@ -507,8 +532,17 @@ fn ui(f: &mut Frame, app: &App) {
     if !app.def.is_empty() {
         lines.push(Line::from(""));
         lines.push(Line::from(Span::styled("📖 Définition", msg_s)).alignment(Alignment::Center));
-        for d in app.def.lines().take(4) {
-            lines.push(Line::from(Span::styled(d.to_string(), msg_s)).alignment(Alignment::Center));
+        // wrap à la largeur utile : lignes longues sinon coupées par le terminal
+        let width = area.width as usize;
+        let max = width.saturating_sub(8).max(30);
+        let mut dl = 0;
+        for d in app.def.lines() {
+            for frag in wrap_text(d, max) {
+                if dl >= 4 { break; }
+                lines.push(Line::from(Span::styled(frag, msg_s)).alignment(Alignment::Center));
+                dl += 1;
+            }
+            if dl >= 4 { break; }
         }
     }
     let bh = (area.height.saturating_sub(bottom)).min(6);
@@ -597,3 +631,16 @@ fn run_app(
 fn _now() -> Instant { Instant::now() }
 #[allow(dead_code)]
 fn _layout_check(c: Constraint) -> Constraint { c }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn wrap_par_mots() {
+        let s = "Mot très long : une définition qui dépasse largement les quatre-vingts colonnes d'un terminal standard moderne";
+        let out = super::wrap_text(s, 40);
+        assert!(out.iter().all(|l| l.chars().count() <= 40), "{:?}", out);
+        assert!(out.len() >= 3);
+        // pas de perte de contenu
+        assert_eq!(out.join(" ").split_whitespace().count(), s.split_whitespace().count());
+    }
+}
