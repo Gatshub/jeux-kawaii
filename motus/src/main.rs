@@ -407,7 +407,7 @@ fn ui(f: &mut Frame, app: &App) {
     let gh = MAX_TRIES * 2 + 1;
     let col = (area.width as usize).saturating_sub(gw) / 2;
     // bloc complet (HUD 3 + grille + messages ~6) centré verticalement
-    let voff = (area.height as usize).saturating_sub(gh + 9) / 2;
+    let voff = (area.height as usize).saturating_sub(gh + 5) / 2;
     let row = voff + 3;
 
     // titre + HUD
