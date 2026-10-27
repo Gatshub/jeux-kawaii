@@ -385,7 +385,12 @@ fn ui(f: &mut Frame, app: &App) {
             "↑↓ choisir · entrée jouer · 1/2/3 direct · b bunkers · q quitter",
             help_s,
         )));
-        f.render_widget(Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center), area);
+        let vh = lines.len() as u16;
+        let vy = area.y + (area.height.saturating_sub(vh)) / 2;
+        f.render_widget(
+            Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center),
+            ratatui::layout::Rect { x: area.x, y: vy, width: area.width, height: vh },
+        );
         return;
     }
 
@@ -421,10 +426,6 @@ fn ui(f: &mut Frame, app: &App) {
     let bombs: Vec<(i32, i32)> = app.bombs.clone();
     draw(&bombs, ko, &mut cell_bits, &mut cell_col);
 
-    // HUD
-    let hearts = "♡ ".repeat(app.lives.max(0) as usize);
-    lines_hud(f, area, app, title_s, hud_s, ok);
-
     // terrain (une Line par rangée braille, Span par run de même couleur)
     let mut terrain: Vec<Line> = Vec::new();
     for r in 0..rows {
@@ -443,62 +444,43 @@ fn ui(f: &mut Frame, app: &App) {
         spans.push(Span::styled(run, Style::default().fg(run_col)));
         terrain.push(Line::from(spans));
     }
-    let th = terrain.len() as u16;
-    let ty = area.y + 3;
-    if ty + th <= area.y + area.height {
-        f.render_widget(
-            Paragraph::new(terrain),
-            ratatui::layout::Rect { x: area.x, y: ty, width: area.width, height: th },
-        );
+    // bloc complet : titre+HUD / terrain / messages → centré verticalement
+    let mut lines: Vec<Line> = vec![
+        Line::from(Span::styled(" ♡  S P A C E   I N V A D E R S  ♡ ", title_s)),
+        Line::from(Span::styled(
+            format!(
+                "score : {}   niveau : {}   vies : {}",
+                app.score,
+                LEVELS[app.level_idx].name,
+                "♡ ".repeat(app.lives.max(0) as usize).trim_end()
+            ),
+            hud_s,
+        )),
+        Line::from(""),
+    ];
+    lines.extend(terrain);
+    lines.push(Line::from(""));
+    lines.push(Line::from(Span::styled(app.message.clone(), msg_s)));
+    if app.won {
+        lines.push(Line::from(Span::styled("🐾 ♡ ".repeat(1 + app.paws.min(6) as usize), Style::default().fg(accent))));
     }
-
-    // messages bas
-    let bottom = ty + th;
-    if bottom < area.y + area.height {
-        let mut lines = vec![
-            Line::from(Span::styled(app.message.clone(), msg_s)),
-            Line::from(Span::styled(
-                if app.over {
-                    "[n] rejouer · esc menu · q quitter".to_string()
-                } else {
-                    "←→ bouger · espace tirer · n rejouer · esc menu".to_string()
-                },
-                help_s,
-            )),
-        ];
-        if app.won {
-            lines.insert(0, Line::from(Span::styled("🐾 ♡ ".repeat(1 + app.paws.min(6) as usize), Style::default().fg(accent))));
-        }
-        f.render_widget(
-            Paragraph::new(lines),
-            ratatui::layout::Rect {
-                x: area.x,
-                y: bottom,
-                width: area.width,
-                height: area.y + area.height - bottom,
-            },
-        );
-    }
-}
-
-fn lines_hud(f: &mut Frame, area: ratatui::layout::Rect, app: &App, title_s: Style, hud_s: Style, ok: Color) {
-    let hearts = "♡ ".repeat(app.lives.max(0) as usize);
-    let line = Line::from(vec![
-        Span::styled(format!("score : {}", app.score), hud_s),
-        Span::raw("   "),
-        Span::styled(format!("niveau : {}", LEVELS[app.level_idx].name), hud_s),
-        Span::raw("   "),
-        Span::styled(format!("vies : {}", hearts.trim_end()), Style::default().fg(ok)),
-    ]);
+    lines.push(Line::from(Span::styled(
+        if app.over {
+            "[n] rejouer · esc menu · q quitter".to_string()
+        } else {
+            "←→ bouger · espace tirer · n rejouer · esc menu".to_string()
+        },
+        help_s,
+    )));
+    let vh = lines.len() as u16;
+    let vy = area.y + (area.height.saturating_sub(vh)) / 2;
     f.render_widget(
-        Paragraph::new(vec![
-            Line::from(Span::styled(" ♡  S P A C E   I N V A D E R S  ♡ ", title_s)),
-            line,
-            Line::from(""),
-        ]),
-        ratatui::layout::Rect { x: area.x, y: area.y, width: area.width, height: 3 },
+        Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center),
+        ratatui::layout::Rect { x: area.x, y: vy, width: area.width, height: vh },
     );
 }
+
+
 
 fn main() -> std::io::Result<()> {
     let mut app = App::new();

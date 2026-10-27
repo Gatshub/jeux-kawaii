@@ -400,7 +400,12 @@ fn ui(f: &mut Frame, app: &App) {
             "↑↓ choisir · entrée jouer · 1/2/3 direct · q quitter",
             help_s,
         )));
-        f.render_widget(Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center), area);
+        let vh = lines.len() as u16;
+        let vy = area.y + (area.height.saturating_sub(vh)) / 2;
+        f.render_widget(
+            Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center),
+            ratatui::layout::Rect { x: area.x, y: vy, width: area.width, height: vh },
+        );
         return;
     }
 
@@ -502,7 +507,12 @@ fn ui(f: &mut Frame, app: &App) {
             help_s,
         )));
     }
-    f.render_widget(Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center), area);
+    let vh = lines.len() as u16;
+    let vy = area.y + (area.height.saturating_sub(vh)) / 2;
+    f.render_widget(
+        Paragraph::new(lines).alignment(ratatui::layout::Alignment::Center),
+        ratatui::layout::Rect { x: area.x, y: vy, width: area.width, height: vh },
+    );
 }
 
 fn main() -> std::io::Result<()> {

@@ -392,8 +392,12 @@ fn ui(f: &mut Frame, app: &App) {
             "↑↓ choisir · entrée jouer · 1-5 direct · q quitter",
             help_s,
         )));
-        let p = Paragraph::new(lines).alignment(Alignment::Center);
-        f.render_widget(p, area);
+        let vh = lines.len() as u16;
+        let vy = area.y + (area.height.saturating_sub(vh)) / 2;
+        f.render_widget(
+            Paragraph::new(lines).alignment(Alignment::Center),
+            ratatui::layout::Rect { x: area.x, y: vy, width: area.width, height: vh },
+        );
         return;
     }
 
@@ -402,7 +406,9 @@ fn ui(f: &mut Frame, app: &App) {
     let gw = app.len * cw + 1;
     let gh = MAX_TRIES * 2 + 1;
     let col = (area.width as usize).saturating_sub(gw) / 2;
-    let row = (area.height as usize).saturating_sub(gh + 6) / 2 + 2;
+    // bloc complet (HUD 3 + grille + messages ~6) centré verticalement
+    let voff = (area.height as usize).saturating_sub(gh + 9) / 2;
+    let row = voff + 3;
 
     // titre + HUD
     let hud = if app.over {
@@ -427,7 +433,7 @@ fn ui(f: &mut Frame, app: &App) {
             .alignment(Alignment::Center),
         ]
     };
-    let hud_area = Rect { x: 0, y: 1, width: area.width, height: 3 };
+    let hud_area = Rect { x: 0, y: voff as u16, width: area.width, height: 3 };
     f.render_widget(Paragraph::new(hud), hud_area);
 
     // bordures de la grille
