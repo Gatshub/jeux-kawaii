@@ -529,7 +529,7 @@ fn ui(f: &mut Frame, app: &App) {
                 if on_cursor && ch != '\0' {
                     let letter = if ch == '_' { "_".to_string() } else { ch.to_string() };
                     ch = '\0'; // texte personnalisé ci-dessous
-                    let txt = format!("[{}]", letter);
+                    let txt = format!(" [{}] ", letter);
                     spans.push(Span::styled(txt, st));
                     spans.push(Span::styled("│", border_s));
                     continue;
