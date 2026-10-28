@@ -74,3 +74,30 @@ englobante du contenu visible) produit les mesures à comparer.
 immédiatement ; dernier écart (motus jeu, -2 lignes) corrigé dans la foulée.
 Tous les écrans sont dans la tolérance ±1. Les binaires installés sont
 vérifiés par md5 avant chaque audit.
+
+## Recettage graphique (invaders-gfx) — critères géométriques
+
+La fenêtre fait 960×660 (compensée du scale HiDPI). En plus du gameplay,
+vérifier à l'ouverture et en jeu :
+
+1. **Fenêtre** : taille 960×660 (`hyprctl clients`), flottante, centrée
+   (`at ≈ (écran−960)/2, (écran−660)/2`), jamais en 0,0.
+2. **Occupation** : le terrain occupe ≥ 85 % de la surface — la formation
+   d'envahisseurs s'étale du bord gauche au bord droit avec des marges
+   latérales **symétriques** (écart ≤ 10 px) ; les bunkers et le vaisseau
+   sont répartis sur toute la largeur.
+3. **Marges verticales** : rien ne chevauche le titre ni la ligne de
+   message ; un espace ≥ 20 px sépare HUD / formation / bunkers / vaisseau.
+4. **Marges latérales du jeu** : la formation, en se déplaçant, rebondit
+   avant les bords (jamais rognée) ; le vaisseau ne sort jamais du cadre.
+5. **Proportions** : sprites ~2× plus grands que la version TUI (lisible
+   à 960 px) ; le pas de descente de la formation ne la fait jamais
+   chevaucher les bunkers d'un seul pas.
+6. **Hiérarchie visuelle** : le titre est le plus gros texte (46 px),
+   HUD 22 px, messages 24 px, aide ≤ 20 px mais lisible (contrasté, pas
+   dim sur fond sombre).
+7. **Tofu** : aucun carré de remplacement de glyphe à l'écran (toutes les
+   chaînes draw_text sont ASCII/latin-1 de base).
+
+Chaque point doit pouvoir être validé par mesure (hyprctl clients, calcul
+des marges depuis les constantes du code) ou par capture d'écran lue.

@@ -109,11 +109,23 @@ struct App {
     descent: f32,
 }
 
+/// Pas horizontal de la formation : la rangée la plus large (difficile : 8
+/// colonnes) s'étale du bord gauche au bord droit utiles.
+const INV_SPACING_X: f32 = 108.0;
+const INV_SPACING_Y: f32 = 76.0;
+
 fn invader_xy(row: usize, col: usize, form_x: f32, descent: f32) -> (f32, f32) {
-    (form_x + col as f32 * 72.0, 90.0 + descent + row as f32 * 62.0)
+    (form_x + col as f32 * INV_SPACING_X, 110.0 + descent + row as f32 * INV_SPACING_Y)
 }
 
 impl App {
+    /// Origine X centrée : la rangée de `cols` colonnes + son sprite s'étale
+    /// symétriquement dans la fenêtre.
+    fn formation_origin_x(cols: usize) -> f32 {
+        let span = (cols as f32 - 1.0) * INV_SPACING_X + 54.0;
+        (W - span) / 2.0
+    }
+
     fn new() -> Self {
         App {
             menu: true,
@@ -137,7 +149,7 @@ impl App {
             shake: 0.0,
             flash: 0.0,
             dark: true,
-            form_x: 60.0,
+            form_x: Self::formation_origin_x(LEVELS[0].2),
             descent: 0.0,
         }
     }
@@ -160,7 +172,7 @@ impl App {
         self.won = false;
         self.shake = 0.0;
         self.flash = 0.0;
-        self.form_x = 60.0;
+        self.form_x = Self::formation_origin_x(LEVELS[level].2);
         self.descent = 0.0;
         self.message = "Défends la galaxie !".into();
         self.invaders = (0..rows)
@@ -172,8 +184,8 @@ impl App {
         }
         let span = W / 4.0;
         for k in 0..4i32 {
-            let bx = k as f32 * span + (span - 110.0) / 2.0;
-            let by = H - 190.0;
+            let bx = k as f32 * span + (span - 110.0) / 2.0 + 20.0;
+            let by = H - 160.0;
             for r in 0..6i32 {
                 for c in 0..11i32 {
                     let roof = r == 0 && (c < 2 || c >= 9);
@@ -412,7 +424,7 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
         app.ship_x = (app.ship_x + SHIP_SPEED * dt).min(W - 30.0);
     }
     if (is_key_pressed(KeyCode::Space) || is_key_pressed(KeyCode::W)) && app.bullets.len() < 2 {
-        app.bullets.push((app.ship_x, H - 60.0));
+        app.bullets.push((app.ship_x, H - 50.0));
     }
 
     // formation
@@ -448,7 +460,7 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
             .filter(|i| i.alive)
             .map(|i| invader_xy(i.row, i.col, app.form_x, app.descent).1)
             .fold(0.0, f32::max);
-        if max_y >= H - 260.0 {
+        if max_y >= H - 330.0 {
             app.over = true;
             app.won = false;
             app.message = "Ils ont débarqué...".into();
@@ -480,7 +492,8 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
         }
     }
     // collision bombes → vaisseau (AVANT rejet hors champ)
-    let ship_y = H - 52.0;
+    const SHIP_Y: f32 = H - 42.0;
+    let ship_y = SHIP_Y;
     if app
         .bombs
         .iter()
@@ -590,7 +603,7 @@ fn game_render(app: &App, pal: Palette) {
         }
     }
 
-    let ship_y = H - 52.0 + sy;
+    let ship_y = H - 42.0 + sy;
     let x = app.ship_x + sx;
     draw_triangle(
         Vec2::new(x, ship_y - 16.0),
