@@ -44,6 +44,11 @@ englobante du contenu visible) produit les mesures à comparer.
 - Grille n×n en `○`/`●`/`·`, gouttière gauche + basse avec `✓`/`✗`/`·`
   (✗ rouge si doublon), bordures reliées.
 
+### Case active (tous jeux à curseur)
+La case sous le curseur affiche son glyph **entre crochets** — `[●]`, `[·]`,
+`[3]`, `[_]` pour une case vide, `[x]` pour une lettre — en plus de la couleur
+accent. La couleur seule ne suffit pas.
+
 ### invaders (TUI)
 - Terrain braille 44 cols × 15 lignes (88×60 points) : envahisseurs accent,
   vaisseau + balles ok, bombes ko, bunkers teinte douce.
