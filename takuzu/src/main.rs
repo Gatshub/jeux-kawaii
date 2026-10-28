@@ -408,12 +408,16 @@ fn ui(f: &mut Frame, app: &App) {
             let sel_size = app.menu_row == i && row_sel_size;
             let sel_diff = app.menu_row == i && !row_sel_size;
             let size_txt = format!("{}×{}", SIZES[i], SIZES[i]);
+            let size_chosen = SIZES[i] == SIZES[app.size_idx];
             let (dname, dh) = DIFFICULTIES[i];
+            let diff_chosen = i == app.diff_idx;
             let hints = hints_for(SIZES[i], dh);
             let hint_word = if hints > 1 { "indices" } else { "indice" };
-            let mk = |sel: bool| -> Style {
+            let mk = |sel: bool, chosen: bool| -> Style {
                 if sel {
                     Style::default().fg(accent).add_modifier(Modifier::BOLD)
+                } else if chosen {
+                    sel_s
                 } else {
                     menu_s
                 }
@@ -421,21 +425,21 @@ fn ui(f: &mut Frame, app: &App) {
             let mut spans: Vec<Span> = Vec::new();
             // marqueur en position FIXE (colonne 0), jamais de décalage
             spans.push(Span::raw(if sel_size || sel_diff { "  ▸  " } else { "     " }));
-            spans.push(Span::styled(format!("{:<8}", size_txt), mk(sel_size)));
-            spans.push(Span::styled(format!("{:<12}", dname), mk(sel_diff)));
+            spans.push(Span::styled(format!("{:<8}", size_txt), mk(sel_size, size_chosen)));
+            spans.push(Span::styled(format!("{:<12}", dname), mk(sel_diff, diff_chosen)));
             spans.push(Span::styled(format!("{:>2} {}", hints, hint_word), menu_s));
             lines.push(Line::from(spans));
         }
         lines.push(Line::from(""));
-        // résumé : la taille choisie + la difficulté SUR LAQUELLE le curseur se trouve
-        let row = app.menu_row;
-        let hints = hints_for(SIZES[app.size_idx], DIFFICULTIES[row].1);
-        let note = if app.menu_col == 0 {
-            format!("Taille : {}×{}   ·   Difficulté : {} ({} indices)", SIZES[app.size_idx], SIZES[app.size_idx], DIFFICULTIES[row].0, hints)
-        } else {
-            let h2 = hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1);
-            format!("Taille : {}×{}   ·   Difficulté : {} ({} indices)", SIZES[app.size_idx], SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].0, h2)
-        };
+        // résumé : toujours les DEUX sélections courantes
+        let hints = hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1);
+        let note = format!(
+            "Taille : {}×{}   ·   Difficulté : {} ({} indices)",
+            SIZES[app.size_idx],
+            SIZES[app.size_idx],
+            DIFFICULTIES[app.diff_idx].0,
+            hints
+        );
         lines.push(Line::from(Span::styled(note, sel_s)));
         lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
@@ -615,17 +619,21 @@ fn run(
                     match k.code {
                         KeyCode::Up | KeyCode::Char('k') => {
                             if app.menu_row > 0 { app.menu_row -= 1; }
+                            if app.menu_col == 0 { app.size_idx = app.menu_row; }
+                            else { app.diff_idx = app.menu_row; }
                         }
                         KeyCode::Down | KeyCode::Char('j') => {
                             if app.menu_row < 3 { app.menu_row += 1; }
+                            if app.menu_col == 0 { app.size_idx = app.menu_row; }
+                            else { app.diff_idx = app.menu_row; }
                         }
                         KeyCode::Left | KeyCode::Char('h') => {
                             app.menu_col = 0;
-                            app.size_idx = app.menu_row;
+                            app.menu_row = app.size_idx; // le curseur saute sur la taille sélectionnée
                         }
                         KeyCode::Right | KeyCode::Char('l') => {
                             app.menu_col = 1;
-                            app.diff_idx = app.menu_row;
+                            app.menu_row = app.diff_idx;
                         }
                         KeyCode::Enter => {
                             // la taille reste celle choisie dans sa colonne
