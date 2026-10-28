@@ -23,6 +23,8 @@ struct App {
     menu: bool,
     level: usize,
     secret: Vec<char>,
+    secret_norm: Vec<char>,
+    secret_orig: String,
     len: usize,
     grid: Vec<Vec<char>>,
     states: Vec<Vec<u8>>, // 0=miss 1=present 2=good
@@ -60,9 +62,13 @@ impl App {
         let secrets_embed = include_str!("../data/secrets.txt");
         for (s, m) in [(mots_embed, &mut dict), (secrets_embed, &mut secrets)] {
             for w in s.lines() {
+                // les secrets sont stockés avec accents (forme d'identité) :
+                // la clé de longueur et la comparaison se font sur la forme
+                // normalisée (sans accents, saisie clavier US friendly)
                 let w = w.trim();
-                if (5..=9).contains(&w.len()) {
-                    m.entry(w.len()).or_default().push(w.to_string());
+                let norm = jeux_core::dico::normalise(w);
+                if (5..=9).contains(&norm.chars().count()) {
+                    m.entry(norm.chars().count()).or_default().push(w.to_string());
                 }
             }
         }
@@ -70,6 +76,8 @@ impl App {
             menu: true,
             level: 0,
             secret: Vec::new(),
+            secret_norm: Vec::new(),
+            secret_orig: String::new(),
             len: 5,
             grid: Vec::new(),
             states: Vec::new(),
@@ -92,7 +100,11 @@ impl App {
         let pool = self.secrets.get(&self.len).cloned().unwrap_or_default();
         let mut rng = rand::thread_rng();
         match pool.choose(&mut rng) {
-            Some(w) => self.secret = w.chars().collect(),
+            Some(w) => {
+                self.secret_orig = w.clone();
+                self.secret_norm = jeux_core::dico::normalise(w).chars().collect();
+                self.secret = self.secret_norm.clone();
+            }
             None => {
                 self.message = "Dictionnaire introuvable (＞﹏＜".into();
                 self.menu = true;
@@ -196,16 +208,18 @@ impl App {
                 "GAGNÉ ! {} essai(s) d'avance ☆*:.｡.o(≧▽≦)o.｡.:*☆",
                 MAX_TRIES - self.grid.len()
             );
-            self.fetch_def(&word);
+            let orig = self.secret_orig.clone();
+            self.fetch_def(&orig);
             return;
         }
         if self.grid.len() >= MAX_TRIES {
             self.over = true;
             self.message = format!(
                 "Perdu ! Le mot était {} (´；ω；`)",
-                self.secret.iter().collect::<String>().to_uppercase()
+                self.secret_orig.to_uppercase()
             );
-            self.fetch_def(&word);
+            let orig = self.secret_orig.clone();
+            self.fetch_def(&orig);
             return;
         }
         self.locked = locked;
