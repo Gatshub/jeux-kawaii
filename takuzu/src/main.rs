@@ -403,7 +403,6 @@ fn ui(f: &mut Frame, app: &App) {
             Line::from(""),
         ];
         let row_sel_size = app.menu_col == 0;
-        let row_sel_size = app.menu_col == 0;
         for i in 0..4 {
             let sel_size = app.menu_row == i && row_sel_size;
             let sel_diff = app.menu_row == i && !row_sel_size;
@@ -411,7 +410,8 @@ fn ui(f: &mut Frame, app: &App) {
             let size_chosen = SIZES[i] == SIZES[app.size_idx];
             let (dname, dh) = DIFFICULTIES[i];
             let diff_chosen = i == app.diff_idx;
-            let hints = hints_for(SIZES[i], dh);
+            // 3ᵉ colonne dynamique : indices calculés pour la TAILLE SÉLECTIONNÉE
+            let hints = hints_for(SIZES[app.size_idx], dh);
             let hint_word = if hints > 1 { "indices" } else { "indice" };
             let mk = |sel: bool, chosen: bool| -> Style {
                 if sel {
@@ -423,9 +423,10 @@ fn ui(f: &mut Frame, app: &App) {
                 }
             };
             let mut spans: Vec<Span> = Vec::new();
-            // marqueur en position FIXE (colonne 0), jamais de décalage
-            spans.push(Span::raw(if sel_size || sel_diff { "  ▸  " } else { "     " }));
+            // ▸ collé à la colonne active (position fixe par colonne)
+            spans.push(Span::raw(if sel_size { "  ▸  " } else { "     " }));
             spans.push(Span::styled(format!("{:<8}", size_txt), mk(sel_size, size_chosen)));
+            spans.push(Span::raw(if sel_diff { " ▸ " } else { "   " }));
             spans.push(Span::styled(format!("{:<12}", dname), mk(sel_diff, diff_chosen)));
             spans.push(Span::styled(format!("{:>2} {}", hints, hint_word), menu_s));
             lines.push(Line::from(spans));
