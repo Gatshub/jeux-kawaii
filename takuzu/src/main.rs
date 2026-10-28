@@ -18,18 +18,20 @@ const CELL_W: usize = 5;
 /// Tailles de grille proposées au menu (l'utilisateur choisit librement).
 const SIZES: [usize; 4] = [6, 8, 10, 12];
 
-/// Difficultés : le niveau d'aide = nombre d'indices pré-placés.
-const DIFFICULTIES: [(&str, usize); 4] = [
-    ("détente", 12),
-    ("facile", 6),
-    ("moyen", 2),
-    ("difficile", 0),
+/// Difficultés : pourcentage d'indices (dépend donc de la taille de grille).
+const DIFFICULTIES: [(&str, u32); 4] = [
+    ("détente", 12),    // ~12 % des cases données
+    ("facile", 6),      // ~6 %
+    ("moyen", 2),       // ~2 %
+    ("difficile", 0),   // aucune
 ];
 
-/// Indices proportionnels : ~6 % de la grille, bornés (min 2, max 14).
-fn hints_for(size: usize, diff_hints: usize) -> usize {
-    let p = size * size * diff_hints / 100;
-    p.clamp(2, 14)
+/// Nombre d'indices : pct % de la grille (n²), borné 2..n²/4.
+fn hints_for(size: usize, pct: u32) -> usize {
+    let total = size * size;
+    let h = total * pct as usize / 100;
+    if h == 0 { return 0; } // difficile : aucune aide, même sur petite grille
+    h.clamp(2, total / 4)
 }
 
 // ─── Moteur ──────────────────────────────────────────────────────────────────
