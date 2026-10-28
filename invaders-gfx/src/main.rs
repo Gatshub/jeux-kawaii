@@ -162,7 +162,7 @@ impl App {
         self.flash = 0.0;
         self.form_x = 60.0;
         self.descent = 0.0;
-        self.message = "Défends la galaxie (๑˃ᴗ˂)ﻭ".into();
+        self.message = "Défends la galaxie !".into();
         self.invaders = (0..rows)
             .flat_map(|r| (0..cols).map(move |c| Invader { row: r, col: c, alive: true }))
             .collect();
@@ -228,13 +228,37 @@ impl MulA for Color {
 }
 
 fn window_conf() -> Conf {
+    // Wayland HiDPI : miniquad traite window_width comme des pixels physiques
+    // puis divise par le scale factor du moniteur (ici 1.6) → la fenêtre arrive
+    // trop petite. On compense en lisant le scale réel de l'environnement.
+    let scale = std::env::var("HYPR_SCALE")
+        .ok()
+        .and_then(|v| v.parse::<f32>().ok())
+        .unwrap_or_else(detect_scale);
     Conf {
-        window_title: "♡ Space Invaders kawaii ♡".to_owned(),
-        window_width: W as i32,
-        window_height: H as i32,
+        window_title: "Space Invaders kawaii".to_owned(),
+        window_width: (W * scale) as i32,
+        window_height: (H * scale) as i32,
         window_resizable: false,
         ..Default::default()
     }
+}
+
+/// Scale factor du moniteur principal, lu via wlr-randr / hyprctl (fallback 1.6).
+fn detect_scale() -> f32 {
+    if let Ok(out) = std::process::Command::new("hyprctl").args(["monitors", "-j"]).output() {
+        if let Ok(s) = String::from_utf8(out.stdout) {
+            // "scale": 1.6
+            if let Some(p) = s.find("\"scale\":") {
+                let rest = &s[p + 8..];
+                let num: String = rest.chars().skip_while(|c| *c == ' ').take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+                if let Ok(v) = num.parse::<f32>() {
+                    if v > 0.1 { return v; }
+                }
+            }
+        }
+    }
+    1.0
 }
 
 #[macroquad::main(window_conf)]
@@ -274,7 +298,7 @@ async fn main() {
 
 fn menu_ui(app: &mut App, pal: Palette) {
     let cx = W / 2.0;
-    let title = " ♡  S P A C E   I N V A D E R S  ♡ ";
+    let title = " *  S P A C E   I N V A D E R S  * ";
     let tw = measure_text(title, None, 46, 1.0).width;
     draw_text(title, cx - tw / 2.0, 150.0, 46.0, pal.accent);
 
@@ -289,12 +313,12 @@ fn menu_ui(app: &mut App, pal: Palette) {
 
     for (i, (name, rows, cols, _, _, lives)) in LEVELS.iter().enumerate() {
         let y = 320.0 + i as f32 * 56.0;
-        let label = format!("{}  ·  {}x{}  ·  {} ♡", name, rows, cols, lives);
+        let label = format!("{}  ·  {}x{}  ·  {} vies", name, rows, cols, lives);
         let sel = i == app.level;
         let col = if sel { pal.accent } else { pal.soft };
         let lw = measure_text(&label, None, 26, 1.0).width;
         if sel {
-            draw_text("▸", cx - lw / 2.0 - 34.0, y, 26.0, col);
+            draw_text(">", cx - lw / 2.0 - 34.0, y, 26.0, col);
             draw_rectangle_lines(cx - lw / 2.0 - 20.0, y - 28.0, lw + 40.0, 40.0, 2.0, pal.accent);
             if is_key_pressed(KeyCode::Enter) || is_key_pressed(KeyCode::Space) {
                 app.start(i);
@@ -337,13 +361,13 @@ fn menu_ui(app: &mut App, pal: Palette) {
     if is_key_pressed(KeyCode::B) {
         app.bunkers_on = !app.bunkers_on;
     }
-    let help = "↑↓ choisir · entrée jouer · 1/2/3 direct · b bunkers · t thème · q quitter";
+    let help = "haut/bas choisir · entrée jouer · 1/2/3 direct · b bunkers · t thème · q quitter";
     draw_text(
         help,
-        cx - measure_text(help, None, 16, 1.0).width / 2.0,
-        590.0,
-        16.0,
-        pal.dim,
+        cx - measure_text(help, None, 20, 1.0).width / 2.0,
+        600.0,
+        20.0,
+        pal.text,
     );
     if is_key_pressed(KeyCode::Q) || is_key_pressed(KeyCode::Escape) {
         std::process::exit(0);
@@ -427,7 +451,7 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
         if max_y >= H - 260.0 {
             app.over = true;
             app.won = false;
-            app.message = "Ils ont débarqué... (´；ω；`)".into();
+            app.message = "Ils ont débarqué...".into();
         }
     }
 
@@ -469,9 +493,9 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
         app.flash = 0.6;
         if app.lives <= 0 {
             app.over = true;
-            app.message = "Game over... (´；ω；`) [n] pour recommencer ♪".into();
+            app.message = "Game over... [n] pour recommencer".into();
         } else {
-            app.message = format!("Aïe ! Il te reste {} ♡ (＞﹏＜)", app.lives);
+            app.message = format!("Aïe ! Il te reste {} vies", app.lives);
         }
     }
     app.bombs.retain(|&(_, y)| y < H - 20.0);
@@ -504,9 +528,9 @@ fn game_update(app: &mut App, pal: &Palette, dt: f32) {
                 if remaining == 0 {
                     app.over = true;
                     app.won = true;
-                    app.message = "GAGNÉ ! Galaxie sauvée !! ☆*:.｡.o(≧▽≦)o.｡.:*☆".into();
+                    app.message = "GAGNÉ ! Galaxie sauvée !! *'".into();
                 } else {
-                    app.message = format!("Un envahisseur de moins ! {} pts ♪", app.score);
+                    app.message = format!("Un envahisseur de moins ! {} pts", app.score);
                 }
                 continue 'outer;
             }
@@ -575,10 +599,10 @@ fn game_render(app: &App, pal: Palette) {
         pal.ok,
     );
     draw_rectangle(x - 22.0, ship_y + 10.0, 44.0, 6.0, pal.ok);
-    draw_text("♡", x - 6.0, ship_y + 2.0, 18.0, pal.bg);
+    draw_text("*", x - 6.0, ship_y + 2.0, 18.0, pal.bg);
 
     for &(bx, by) in &app.bullets {
-        draw_text("♡", bx + sx - 6.0, by + sy + 6.0, 16.0, pal.ok);
+        draw_text("*", bx + sx - 6.0, by + sy + 6.0, 16.0, pal.ok);
     }
     for &(bx, by) in &app.bombs {
         draw_circle(bx + sx, by + sy, 4.5, pal.ko);
@@ -599,7 +623,7 @@ fn game_render(app: &App, pal: Palette) {
     draw_text(&hud, 24.0, 34.0, 22.0, pal.text);
     let (_, name, _, _, _, _) = LEVELS[app.level];
     draw_text(&format!("niveau : {}", name), 200.0, 34.0, 22.0, pal.text);
-    let hearts = "♡ ".repeat(app.lives.max(0) as usize);
+    let hearts = "* ".repeat(app.lives.max(0) as usize);
     draw_text(&format!("vies : {}", hearts.trim_end()), W - 200.0, 34.0, 22.0, pal.ok);
 
     if !app.message.is_empty() {
@@ -607,14 +631,14 @@ fn game_render(app: &App, pal: Palette) {
         draw_text(&app.message, W / 2.0 - mw / 2.0, H - 20.0, 24.0, pal.accent);
     }
     if app.won {
-        let paws = "🐾 ♡ ".repeat(6);
+        let paws = "*  ".repeat(6);
         let pw = measure_text(&paws, None, 28, 1.0).width;
         draw_text(&paws, W / 2.0 - pw / 2.0, H / 2.0, 28.0, pal.accent);
     }
     let help = if app.over {
         "[n] rejouer · esc menu · q quitter"
     } else {
-        "←→ bouger · espace tirer · t thème · esc menu"
+        "gauche/droite bouger · espace tirer · t thème · esc menu"
     };
     let hw = measure_text(help, None, 15, 1.0).width;
     draw_text(help, W / 2.0 - hw / 2.0, H - 44.0, 15.0, pal.dim);
