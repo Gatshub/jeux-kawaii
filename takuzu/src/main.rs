@@ -462,8 +462,18 @@ fn ui(f: &mut Frame, app: &App) {
         s.push(right);
         Line::from(Span::styled(s, border_s))
     };
+    // cellule : exactement CELL_W chars entre deux │ (glyph centré)
+    let cell = |ch: &str, style: Style| -> [Span; 2] {
+        let total = CELL_W - ch.chars().count();
+        let l = total / 2;
+        let r = total - l;
+        [
+            Span::styled("│", border_s),
+            Span::styled(format!("{}{}{}", " ".repeat(l), ch, " ".repeat(r)), style),
+        ]
+    };
 
-    lines.push(hline('┌', '┬', '┐', CELL_W / 2));
+    lines.push(hline('┌', '┬', '┐', CELL_W));
     for i in 0..n {
         let mut spans: Vec<Span> = vec![gutter(app.row_state(i), dr.contains(&i))];
         for j in 0..n {
@@ -476,17 +486,17 @@ fn ui(f: &mut Frame, app: &App) {
             } else {
                 Style::default().fg(soft)
             };
-            let pad = (CELL_W - 1) / 2;
-            spans.push(Span::styled("│", border_s));
-            spans.push(Span::styled(format!("{}{}{}", " ".repeat(pad), ch, " ".repeat(pad + 1)), style));
+            let [bar, body] = cell(ch, style);
+            spans.push(bar);
+            spans.push(body);
         }
         spans.push(Span::styled("│", border_s));
         lines.push(Line::from(spans));
         if i < n - 1 {
-            lines.push(hline('├', '┼', '┤', CELL_W / 2));
+            lines.push(hline('├', '┼', '┤', CELL_W));
         }
     }
-    lines.push(hline('└', '┴', '┘', CELL_W / 2));
+    lines.push(hline('└', '┴', '┘', CELL_W));
     let mut last: Vec<Span> = vec![gutter(0, false)];
     for j in 0..n {
         let mut st = app.col_state(j);

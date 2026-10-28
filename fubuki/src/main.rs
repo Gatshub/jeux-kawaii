@@ -198,7 +198,10 @@ fn ui(f: &mut Frame, app: &App) {
     lines.push(Line::from(pal));
     lines.push(Line::from(""));
 
-    // grille + sommes
+    // grille dessinée : cellules de 5 entre bordures, totaux intégrés
+    let cellw = 5usize;
+    let seg = "─".repeat(cellw);
+    let border_s = Style::default().fg(p.muted);
     let sum_style = |sum: i32, target: i32, full: bool| {
         if !full {
             Style::default().fg(p.muted)
@@ -209,6 +212,28 @@ fn ui(f: &mut Frame, app: &App) {
         }
     };
 
+    let hline = |left: char, mid: char, right: char| -> Line<'static> {
+        let mut s = String::new();
+        s.push(left);
+        for c in 0..3 {
+            if c > 0 { s.push(mid); }
+            s.push_str(&seg);
+        }
+        s.push(right);
+        Line::from(Span::styled(s, border_s))
+    };
+
+    // cellule de grid OU total de colonne (dernière "ligne" = totaux)
+    let cell_span = |ch: &str, style: Style| -> [Span; 2] {
+        let total = cellw - ch.chars().count();
+        let l = total / 2;
+        [
+            Span::styled("│", border_s),
+            Span::styled(format!("{}{}{}", " ".repeat(l), ch, " ".repeat(total - l)), style),
+        ]
+    };
+
+    lines.push(hline('┌', '┬', '┐'));
     for i in 0..3 {
         let mut spans: Vec<Span> = Vec::new();
         for j in 0..3 {
@@ -221,21 +246,28 @@ fn ui(f: &mut Frame, app: &App) {
             } else {
                 Style::default().fg(p.soft)
             };
-            spans.push(Span::styled(format!("  {}  ", ch), style));
-spans.push(Span::raw(" "));
+            let [bar, body] = cell_span(ch, style);
+            spans.push(bar);
+            spans.push(body);
         }
+        spans.push(Span::styled("│", border_s));
+        // total de ligne à droite (au-delà de la bordure)
         let s = sum_style(app.row_sum_of(i), app.row_sum[i], app.row_full(i));
         spans.push(Span::styled(format!("= {:>3}", app.row_sum[i]), s));
         lines.push(Line::from(spans));
+        lines.push(hline('├', '┼', '┤'));
     }
-    let mut spans: Vec<Span> = vec![Span::raw("                 ")];
+    // ligne des totaux de colonnes : sous la grille, dans les mêmes cases
+    let mut spans: Vec<Span> = Vec::new();
     for j in 0..3 {
         let s = sum_style(app.col_sum_of(j), app.col_sum[j], app.col_full(j));
-        spans.push(Span::styled(format!("= {:>3}", app.col_sum[j]), s));
-        spans.push(Span::raw(" "));
+        let [bar, body] = cell_span(&format!("={:>2}", app.col_sum[j]), s);
+        spans.push(bar);
+        spans.push(body);
     }
-    lines.push(Line::from(""));
+    spans.push(Span::styled("│", border_s));
     lines.push(Line::from(spans));
+    lines.push(hline('└', '┴', '┘'));
     lines.push(Line::from(""));
 
     lines.push(Line::from(Span::styled(app.message.clone(), msg_s)));
@@ -255,6 +287,25 @@ spans.push(Span::raw(" "));
         )));
     }
 
+    // ratatui Center centre chaque ligne selon SA largeur → les lignes
+    // courtes (hlines) dérivent face aux longues (grille + " = nn"). On
+    // calcule la largeur max et on pad chaque ligne à droite pour que toutes
+    // aient la même largeur, PUIS on centre le bloc.
+    let width_of = |l: &Line| -> usize {
+        l.spans.iter().map(|s| s.content.chars().count()).sum()
+    };
+    let maxw = lines.iter().map(width_of).max().unwrap_or(0);
+    let lines: Vec<Line> = lines
+        .into_iter()
+        .map(|l| {
+            let lw = width_of(&l);
+            let mut spans = l.spans;
+            if lw < maxw {
+                spans.push(Span::raw(" ".repeat(maxw - lw)));
+            }
+            Line::from(spans)
+        })
+        .collect();
     let vh = lines.len() as u16;
     let vy = area.y + (area.height.saturating_sub(vh)) / 2;
     f.render_widget(
