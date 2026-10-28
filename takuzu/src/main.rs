@@ -15,17 +15,22 @@ type Board = Vec<Vec<i8>>; // -1 vide, 0/1
 
 const CELL_W: usize = 5;
 
-struct Level {
-    name: &'static str,
-    size: usize,
-    hints: usize,
-}
+/// Tailles de grille proposées au menu (l'utilisateur choisit librement).
+const SIZES: [usize; 4] = [6, 8, 10, 12];
 
-const LEVELS: [Level; 3] = [
-    Level { name: "facile", size: 6, hints: 2 },
-    Level { name: "moyen", size: 8, hints: 1 },
-    Level { name: "difficile", size: 10, hints: 0 },
+/// Difficultés : le niveau d'aide = nombre d'indices pré-placés.
+const DIFFICULTIES: [(&str, usize); 4] = [
+    ("détente", 12),
+    ("facile", 6),
+    ("moyen", 2),
+    ("difficile", 0),
 ];
+
+/// Indices proportionnels : ~6 % de la grille, bornés (min 2, max 14).
+fn hints_for(size: usize, diff_hints: usize) -> usize {
+    let p = size * size * diff_hints / 100;
+    p.clamp(2, 14)
+}
 
 // ─── Moteur ──────────────────────────────────────────────────────────────────
 
@@ -256,7 +261,10 @@ fn line_state(vals: &[i8]) -> u8 {
 
 struct App {
     menu: bool,
-    level_idx: usize,
+    menu_row: usize,      // ligne de sélection du menu (0..3)
+    menu_col: usize,      // colonne du menu (0 = taille, 1 = difficulté)
+    size_idx: usize,      // taille choisie
+    diff_idx: usize,      // difficulté choisie
     grid: Board,
     hint: Vec<Vec<bool>>,
     sol: Board,
@@ -270,7 +278,10 @@ impl App {
     fn new() -> Self {
         App {
             menu: true,
-            level_idx: 0,
+            menu_row: 0,
+            menu_col: 0,
+            size_idx: 0,
+            diff_idx: 1,
             grid: vec![],
             hint: vec![],
             sol: vec![],
@@ -281,23 +292,24 @@ impl App {
         }
     }
 
-    fn start(&mut self, level_idx: usize) {
-        let lv = &LEVELS[level_idx];
-        let (p, s) = generate_puzzle(lv.size);
-        let n = lv.size;
+    fn start(&mut self, size: usize, diff_idx: usize) {
+        let (diff_name, diff_hints) = DIFFICULTIES[diff_idx];
+        let (p, s) = generate_puzzle(size);
+        let n = size;
         let mut hint = vec![vec![false; n]; n];
         let mut grid = p;
-        if lv.hints > 0 {
+        let hints = hints_for(n, diff_hints);
+        if hints > 0 {
             let mut rng = rand::thread_rng();
             let mut perm: Vec<usize> = (0..n * n).collect();
             perm.shuffle(&mut rng);
-            for &c in perm.iter().take(lv.hints) {
+            for &c in perm.iter().take(hints) {
                 let (i, j) = (c / n, c % n);
                 hint[i][j] = true;
                 grid[i][j] = s[i][j];
             }
         }
-        self.level_idx = level_idx;
+        self.diff_idx = diff_idx;
         self.grid = grid;
         self.hint = hint;
         self.sol = s;
@@ -385,19 +397,59 @@ fn ui(f: &mut Frame, app: &App) {
         let mut lines = vec![
             Line::from(Span::styled(" ♡  T A K U Z U  ♡ ", title_s)),
             Line::from(""),
-            Line::from(Span::styled("Choisis ton niveau :", menu_s)),
+            Line::from(Span::styled("Taille de grille et difficulté :", menu_s)),
             Line::from(""),
         ];
-        for (i, lv) in LEVELS.iter().enumerate() {
-            let hint_word = if lv.hints > 1 { "indices" } else { "indice" };
-            let prefix = format!("  [{}] ", i + 1);
-            let line = format!("{:<5} · {:<9} · {} {:<7}", format!("{}x{}", lv.size, lv.size), lv.name, lv.hints, hint_word);
-            let style = if i == app.level_idx { sel_s } else { menu_s };
-            lines.push(Line::from(Span::styled(prefix + &line, style)));
+        let row_sel_size = app.menu_col == 0;
+        for i in 0..4 {
+            let sel_size = app.menu_row == i && row_sel_size;
+            let sel_diff = app.menu_row == i && !row_sel_size;
+            let size_txt = format!("{}×{}", SIZES[i], SIZES[i]);
+            let size_chosen = SIZES[i] == SIZES[app.size_idx];
+            let (dname, dh) = DIFFICULTIES[i];
+            let hints = hints_for(SIZES[i], dh);
+            let hint_word = if hints > 1 { "indices" } else { "indice" };
+            let diff_chosen = i == app.diff_idx;
+            let mk = |sel: bool, chosen: bool| -> Style {
+                if sel {
+                    Style::default().fg(accent).add_modifier(Modifier::BOLD)
+                } else if chosen {
+                    sel_s
+                } else {
+                    menu_s
+                }
+            };
+            let mut spans: Vec<Span> = Vec::new();
+            spans.push(Span::raw("  "));
+            if sel_size {
+                spans.push(Span::styled("▸ ", mk(true, true)));
+            } else {
+                spans.push(Span::raw("  "));
+            }
+            spans.push(Span::styled(format!("{:<7}", size_txt), mk(false, size_chosen)));
+            if sel_diff {
+                spans.push(Span::styled("▸ ", mk(true, true)));
+            } else {
+                spans.push(Span::raw("  "));
+            }
+            spans.push(Span::styled(format!("{:<10} ", dname), mk(false, diff_chosen)));
+            spans.push(Span::styled(format!("{:>2} {}", hints, hint_word), menu_s));
+            lines.push(Line::from(spans));
         }
         lines.push(Line::from(""));
+        let hints = hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1);
+        let note = format!(
+            "{}×{} · {} ({} indices) · {} cases",
+            SIZES[app.size_idx],
+            SIZES[app.size_idx],
+            DIFFICULTIES[app.diff_idx].0,
+            hints,
+            SIZES[app.size_idx] * SIZES[app.size_idx]
+        );
+        lines.push(Line::from(Span::styled(note, sel_s)));
+        lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
-            "↑↓ choisir · entrée jouer · 1/2/3 direct · q quitter",
+            "←→ colonne · ↑↓ ligne · entrée jouer · q quitter",
             help_s,
         )));
         let vh = lines.len() as u16;
@@ -412,7 +464,16 @@ fn ui(f: &mut Frame, app: &App) {
     let n = app.grid.len();
     let mut lines: Vec<Line> = Vec::new();
     lines.push(Line::from(Span::styled(" ♡  T A K U Z U  ♡ ", title_s)));
-    lines.push(Line::from(Span::styled(format!("niveau : {}", LEVELS[app.level_idx].name), menu_s)));
+    lines.push(Line::from(Span::styled(
+        format!(
+            "{}×{} · {} ({} indices)",
+            SIZES[app.size_idx],
+            SIZES[app.size_idx],
+            DIFFICULTIES[app.diff_idx].0,
+            hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1)
+        ),
+        menu_s,
+    )));
     lines.push(Line::from(""));
 
     // palette 0/1
@@ -562,14 +623,21 @@ fn run(
                 }
                 if app.menu {
                     match k.code {
-                        KeyCode::Char(c @ '1'..='3') => app.start(c as usize - '1' as usize),
-                        KeyCode::Up | KeyCode::Char('k') | KeyCode::Left | KeyCode::Char('h') => {
-                            if app.level_idx > 0 { app.level_idx -= 1; }
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            if app.menu_row > 0 { app.menu_row -= 1; }
                         }
-                        KeyCode::Down | KeyCode::Char('j') | KeyCode::Right | KeyCode::Char('l') => {
-                            if app.level_idx < LEVELS.len() - 1 { app.level_idx += 1; }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            if app.menu_row < 3 { app.menu_row += 1; }
                         }
-                        KeyCode::Enter => app.start(app.level_idx),
+                        KeyCode::Left | KeyCode::Char('h') => {
+                            app.menu_col = 0;
+                        }
+                        KeyCode::Right | KeyCode::Char('l') => {
+                            app.menu_col = 1;
+                        }
+                        KeyCode::Enter => {
+                            app.start(SIZES[app.size_idx], app.diff_idx);
+                        }
                         KeyCode::Char('q') => return Ok(()),
                         _ => {}
                     }
@@ -580,8 +648,9 @@ fn run(
                     KeyCode::Char('q') if app.won => return Ok(()),
                     KeyCode::Esc => { *app = App::new(); continue; }
                     KeyCode::Char('n') => {
-                        let lv = app.level_idx;
-                        app.start(lv);
+                        let size = SIZES[app.size_idx];
+                        let d = app.diff_idx;
+                        app.start(size, d);
                     }
                     KeyCode::Up | KeyCode::Char('k') => {
                         if app.cursor / n > 0 { app.cursor -= n; }
