@@ -403,51 +403,39 @@ fn ui(f: &mut Frame, app: &App) {
             Line::from(""),
         ];
         let row_sel_size = app.menu_col == 0;
+        let row_sel_size = app.menu_col == 0;
         for i in 0..4 {
             let sel_size = app.menu_row == i && row_sel_size;
             let sel_diff = app.menu_row == i && !row_sel_size;
             let size_txt = format!("{}×{}", SIZES[i], SIZES[i]);
-            let size_chosen = SIZES[i] == SIZES[app.size_idx];
             let (dname, dh) = DIFFICULTIES[i];
             let hints = hints_for(SIZES[i], dh);
             let hint_word = if hints > 1 { "indices" } else { "indice" };
-            let diff_chosen = i == app.diff_idx;
-            let mk = |sel: bool, chosen: bool| -> Style {
+            let mk = |sel: bool| -> Style {
                 if sel {
                     Style::default().fg(accent).add_modifier(Modifier::BOLD)
-                } else if chosen {
-                    sel_s
                 } else {
                     menu_s
                 }
             };
             let mut spans: Vec<Span> = Vec::new();
-            spans.push(Span::raw("  "));
-            if sel_size {
-                spans.push(Span::styled("▸ ", mk(true, true)));
-            } else {
-                spans.push(Span::raw("  "));
-            }
-            spans.push(Span::styled(format!("{:<7}", size_txt), mk(false, size_chosen)));
-            if sel_diff {
-                spans.push(Span::styled("▸ ", mk(true, true)));
-            } else {
-                spans.push(Span::raw("  "));
-            }
-            spans.push(Span::styled(format!("{:<10} ", dname), mk(false, diff_chosen)));
+            // marqueur en position FIXE (colonne 0), jamais de décalage
+            spans.push(Span::raw(if sel_size || sel_diff { "  ▸  " } else { "     " }));
+            spans.push(Span::styled(format!("{:<8}", size_txt), mk(sel_size)));
+            spans.push(Span::styled(format!("{:<12}", dname), mk(sel_diff)));
             spans.push(Span::styled(format!("{:>2} {}", hints, hint_word), menu_s));
             lines.push(Line::from(spans));
         }
         lines.push(Line::from(""));
-        let hints = hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1);
-        let note = format!(
-            "{}×{} · {} ({} indices) · {} cases",
-            SIZES[app.size_idx],
-            SIZES[app.size_idx],
-            DIFFICULTIES[app.diff_idx].0,
-            hints,
-            SIZES[app.size_idx] * SIZES[app.size_idx]
-        );
+        // résumé : la taille choisie + la difficulté SUR LAQUELLE le curseur se trouve
+        let row = app.menu_row;
+        let hints = hints_for(SIZES[app.size_idx], DIFFICULTIES[row].1);
+        let note = if app.menu_col == 0 {
+            format!("Taille : {}×{}   ·   Difficulté : {} ({} indices)", SIZES[app.size_idx], SIZES[app.size_idx], DIFFICULTIES[row].0, hints)
+        } else {
+            let h2 = hints_for(SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].1);
+            format!("Taille : {}×{}   ·   Difficulté : {} ({} indices)", SIZES[app.size_idx], SIZES[app.size_idx], DIFFICULTIES[app.diff_idx].0, h2)
+        };
         lines.push(Line::from(Span::styled(note, sel_s)));
         lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(
@@ -633,11 +621,14 @@ fn run(
                         }
                         KeyCode::Left | KeyCode::Char('h') => {
                             app.menu_col = 0;
+                            app.size_idx = app.menu_row;
                         }
                         KeyCode::Right | KeyCode::Char('l') => {
                             app.menu_col = 1;
+                            app.diff_idx = app.menu_row;
                         }
                         KeyCode::Enter => {
+                            // la taille reste celle choisie dans sa colonne
                             app.start(SIZES[app.size_idx], app.diff_idx);
                         }
                         KeyCode::Char('q') => return Ok(()),
