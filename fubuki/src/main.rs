@@ -238,7 +238,13 @@ fn ui(f: &mut Frame, app: &App) {
         let mut spans: Vec<Span> = Vec::new();
         for j in 0..3 {
             let idx = 3 * i + j;
-            let ch = if app.grid[idx] < 0 { "·" } else { &app.grid[idx].to_string() };
+            let raw = if app.grid[idx] < 0 { "·" } else { &app.grid[idx].to_string() };
+            let ch = if idx == app.cursor && !app.won {
+                format!("[{}]", raw)
+            } else {
+                raw.to_string()
+            };
+            let ch = &ch;
             let style = if app.hint_cell[idx] {
                 Style::default().fg(p.muted).add_modifier(Modifier::BOLD)
             } else if idx == app.cursor && !app.won {

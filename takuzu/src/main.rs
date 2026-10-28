@@ -533,7 +533,14 @@ fn ui(f: &mut Frame, app: &App) {
         let mut spans: Vec<Span> = vec![gutter(app.row_state(i), dr.contains(&i))];
         for j in 0..n {
             let idx = i * n + j;
-            let ch = match app.grid[i][j] { 0 => "○", 1 => "●", _ => "·" };
+            let raw = match app.grid[i][j] { 0 => "○", 1 => "●", _ => "·" };
+            // la case active se voit par le caractère, pas que la couleur
+            let ch = if idx == app.cursor && !app.won {
+                format!("[{}]", raw)
+            } else {
+                raw.to_string()
+            };
+            let ch = &ch;
             let style = if idx == app.cursor && !app.won {
                 Style::default().fg(accent).add_modifier(Modifier::BOLD)
             } else if app.hint[i][j] {

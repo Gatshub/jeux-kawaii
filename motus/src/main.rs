@@ -514,16 +514,26 @@ fn ui(f: &mut Frame, app: &App) {
                 };
             } else if gr == app.grid.len() {
                 ch = app.current[c];
-                if ch == '\0' && c == app.cursor && !app.over {
+                let on_cursor = c == app.cursor && !app.over;
+                if ch == '\0' && on_cursor {
                     ch = '_';
                 }
                 st = if app.locked[c] {
                     Style::default().fg(given).add_modifier(Modifier::BOLD)
-                } else if c == app.cursor && !app.over {
+                } else if on_cursor {
                     Style::default().fg(accent).add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(miss)
                 };
+                // la case active se voit par le caractère (crochets), pas que la couleur
+                if on_cursor && ch != '\0' {
+                    let letter = if ch == '_' { "_".to_string() } else { ch.to_string() };
+                    ch = '\0'; // texte personnalisé ci-dessous
+                    let txt = format!("[{}]", letter);
+                    spans.push(Span::styled(txt, st));
+                    spans.push(Span::styled("│", border_s));
+                    continue;
+                }
             }
             let txt = if ch == '\0' {
                 "  ·  ".to_string()
