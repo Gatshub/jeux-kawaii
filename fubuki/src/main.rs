@@ -255,19 +255,25 @@ fn ui(f: &mut Frame, app: &App) {
         let s = sum_style(app.row_sum_of(i), app.row_sum[i], app.row_full(i));
         spans.push(Span::styled(format!("= {:>3}", app.row_sum[i]), s));
         lines.push(Line::from(spans));
-        lines.push(hline('├', '┼', '┤'));
+        if i < 2 {
+            lines.push(hline('├', '┼', '┤'));
+        } else {
+            lines.push(hline('└', '┴', '┘'));
+        }
     }
-    // ligne des totaux de colonnes : sous la grille, dans les mêmes cases
+    // ligne des totaux de colonnes : sous la grille, SANS bordure, mais avec
+    // le même pas (5 chars/cellule + 1 séparation) pour tomber sous les colonnes
     let mut spans: Vec<Span> = Vec::new();
     for j in 0..3 {
         let s = sum_style(app.col_sum_of(j), app.col_sum[j], app.col_full(j));
-        let [bar, body] = cell_span(&format!("={:>2}", app.col_sum[j]), s);
-        spans.push(bar);
-        spans.push(body);
+        // 1 char de séparation (la bordure │ absente) + 5 chars de cellule
+        spans.push(Span::raw(" "));
+        let text = format!("={:>2}", app.col_sum[j]);
+        let total = cellw - text.chars().count();
+        let l = total / 2;
+        spans.push(Span::styled(format!("{}{}{}", " ".repeat(l), text, " ".repeat(total - l)), s));
     }
-    spans.push(Span::styled("│", border_s));
     lines.push(Line::from(spans));
-    lines.push(hline('└', '┴', '┘'));
     lines.push(Line::from(""));
 
     lines.push(Line::from(Span::styled(app.message.clone(), msg_s)));
@@ -294,12 +300,42 @@ fn ui(f: &mut Frame, app: &App) {
     let width_of = |l: &Line| -> usize {
         l.spans.iter().map(|s| s.content.chars().count()).sum()
     };
-    let maxw = lines.iter().map(width_of).max().unwrap_or(0);
+    // largeur STRUCTURELLE : celle de la ligne de grille (la plus large et la
+    // seule fixe). Les messages ne doivent jamais l'élargir (sinon tout le
+    // bloc saute quand le texte change) → ils sont tronqués à cette largeur.
+    // la ligne de GRILLE est reconnaissable : elle contient une bordure ┌ ou │
+    // (et les totaux "= nn"). On la repère par son contenu, pas par sa taille.
+    let gridw = lines
+        .iter()
+        .filter(|l| l.spans.iter().any(|s| s.content.chars().any(|c| "│┌├└".contains(c))))
+        .map(width_of)
+        .max()
+        .unwrap_or(40);
+    let maxw = gridw;
     let lines: Vec<Line> = lines
         .into_iter()
-        .map(|l| {
+        .map(|mut l| {
             let lw = width_of(&l);
-            let mut spans = l.spans;
+            let mut spans = std::mem::take(&mut l.spans);
+            if lw > maxw {
+                // tronquer le dernier span textuel
+                let mut budget = lw - maxw;
+                let mut out = Vec::new();
+                for s in spans.drain(..) {
+                    let slen = s.content.chars().count();
+                    if slen <= budget {
+                        budget -= slen;
+                        out.push(s);
+                    } else {
+                        let keep = slen - budget;
+                        let text: String = s.content.chars().take(keep).collect();
+                        out.push(Span::styled(text, s.style));
+                        budget = 0;
+                    }
+                }
+                spans = out;
+            }
+            let lw: usize = spans.iter().map(|s| s.content.chars().count()).sum();
             if lw < maxw {
                 spans.push(Span::raw(" ".repeat(maxw - lw)));
             }
