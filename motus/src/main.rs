@@ -36,6 +36,11 @@ struct App {
     message: String,
     def: String,
     dark: bool,
+    parts: Vec<(f32, f32, f32, f32, f32, Color)>, // x, y, vx, vy, life, col
+    fw_t: f32,
+    fw_top: f32,
+    fw_w: f32,
+    rng: rand::rngs::ThreadRng,
     dict: HashMap<usize, Vec<String>>,
     secrets: HashMap<usize, Vec<String>>,
 }
@@ -89,6 +94,11 @@ impl App {
             message: String::new(),
             def: String::new(),
             dark: detect_dark(),
+            parts: Vec::new(),
+            fw_t: 0.0,
+            fw_top: 10.0,
+            fw_w: 100.0,
+            rng: rand::thread_rng(),
             dict,
             secrets,
         }
@@ -186,6 +196,39 @@ impl App {
             }
         }
         (fb, locked)
+    }
+
+    /// Feux d'artifice de victoire : gerbes aléatoires au-dessus de la grille.
+    fn step_fireworks(&mut self, dt: f32) {
+        use rand::Rng;
+        self.fw_t -= dt;
+        if self.fw_t <= 0.0 && self.fw_top > 4.0 {
+            self.fw_t = self.rng.gen_range(0.25..0.6);
+            let bx = self.rng.gen_range(8.0..(self.fw_w - 8.0));
+            let by = self.rng.gen_range(2.0..(self.fw_top - 1.0));
+            let col = match self.rng.gen_range(0..3) {
+                0 => Color::Rgb(214, 72, 140),
+                1 => Color::Rgb(123, 184, 255),
+                _ => Color::Rgb(255, 200, 120),
+            };
+            for _ in 0..24 {
+                let a = self.rng.gen_range(0.0..std::f32::consts::TAU);
+                let sp = self.rng.gen_range(3.0..14.0);
+                self.parts.push((
+                    bx, by,
+                    a.cos() * sp, a.sin() * sp,
+                    self.rng.gen_range(0.5..1.1),
+                    col,
+                ));
+            }
+        }
+        for p in self.parts.iter_mut() {
+            p.0 += p.2 * dt;
+            p.1 += p.3 * dt;
+            p.3 += 2.0 * dt;
+            p.4 -= dt;
+        }
+        self.parts.retain(|p| p.4 > 0.0);
     }
 
     fn submit(&mut self) {
@@ -423,6 +466,7 @@ fn ui(f: &mut Frame, app: &App) {
     // bloc complet (HUD 3 + grille + messages ~6) centré verticalement
     let voff = (area.height as usize).saturating_sub(gh + 5) / 2;
     let row = voff + 3;
+    // fw_top/fw_w renseignés par run_app via f.area()
 
     // titre + HUD
     let hud = if app.over {
@@ -447,6 +491,36 @@ fn ui(f: &mut Frame, app: &App) {
             .alignment(Alignment::Center),
         ]
     };
+    // feux d'artifice (victoire) : couche au-dessus de la HUD/grille
+    if app.won && !app.parts.is_empty() {
+        let mut by_row: std::collections::HashMap<usize, Vec<(usize, char, Color)>> = std::collections::HashMap::new();
+        for p in &app.parts {
+            let row = (p.1.round().max(0.0)) as usize;
+            let x = (p.0.round().max(0.0)) as usize;
+            if row < voff.min(10) && x < area.width as usize {
+                by_row.entry(row).or_default().push((x, char::from_u32(0x00B7).unwrap_or('·'), p.5));
+            }
+        }
+        for (r, mut items) in by_row {
+            let mut spans: Vec<Span> = Vec::new();
+            items.sort_by_key(|(x, _, _)| *x);
+            let mut cur = 0usize;
+            for (x, ch, col) in items {
+                if x > cur {
+                    spans.push(Span::raw(" ".repeat(x - cur)));
+                }
+                spans.push(Span::styled(ch.to_string(), Style::default().fg(col)));
+                cur = x + 1;
+            }
+            let y = r as u16;
+            if y < area.height {
+                f.render_widget(
+                    Line::from(spans),
+                    Rect { x: 0, y, width: area.width, height: 1 },
+                );
+            }
+        }
+    }
     let hud_area = Rect { x: 0, y: voff as u16, width: area.width, height: 3 };
     f.render_widget(Paragraph::new(hud), hud_area);
 
@@ -512,9 +586,9 @@ fn ui(f: &mut Frame, app: &App) {
                     1 => Style::default().fg(pres).add_modifier(Modifier::BOLD),
                     _ => Style::default().fg(miss),
                 };
-            } else if gr == app.grid.len() {
+            } else if gr == app.grid.len() && !app.over {
                 ch = app.current[c];
-                let on_cursor = c == app.cursor && !app.over;
+                let on_cursor = c == app.cursor;
                 if ch == '\0' && on_cursor {
                     ch = '_';
                 }
@@ -610,8 +684,12 @@ fn run_app(
     app: &mut App,
 ) -> std::io::Result<()> {
     loop {
+        let area = term.size()?;
+        app.fw_top = ((area.height as usize).saturating_sub(13 + 5) / 2) as f32; // ≈ voff
+        app.fw_w = area.width as f32;
         term.draw(|f| ui(f, app))?;
-        if event::poll(Duration::from_millis(100))? {
+        let poll_ms = if app.over && app.won { 50 } else { 100 };
+        if event::poll(Duration::from_millis(poll_ms))? {
             if let Event::Key(k) = event::read()? {
                 if k.kind != KeyEventKind::Press {
                     continue;
@@ -652,6 +730,9 @@ fn run_app(
                     }
                 }
             }
+        } else if app.over && app.won {
+            // pas d'événement : animer les feux d'artifice
+            app.step_fireworks(0.05);
         }
     }
 }
