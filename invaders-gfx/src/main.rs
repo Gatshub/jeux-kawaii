@@ -52,9 +52,9 @@ fn palette(dark: bool) -> Palette {
             accent: Color::from_hex(0xD6488C),
             ok: Color::from_hex(0x1F7A4D),
             ko: Color::from_hex(0xB3243C),
-            soft: Color::from_hex(0x6E5A75),
+            soft: Color::from_hex(0x4B4155),
             text: Color::from_hex(0x2A2130),
-            dim: Color::from_hex(0x8A7D8F),
+            dim: Color::from_hex(0x5F545F),
         }
     }
 }

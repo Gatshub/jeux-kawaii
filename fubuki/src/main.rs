@@ -138,7 +138,7 @@ fn palette(dark: bool) -> Palette {
         ok: Color::Rgb(t.good.0, t.good.1, t.good.2),
         ko: Color::Rgb(t.ko.0, t.ko.1, t.ko.2),
         muted: if dark { Color::Rgb(154, 140, 160) } else { Color::Rgb(95, 85, 100) },
-        soft: if dark { Color::Rgb(201, 187, 209) } else { Color::Rgb(110, 90, 117) },
+        soft: if dark { Color::Rgb(201, 187, 209) } else { Color::Rgb(75, 65, 85) },
         accent: Color::Rgb(t.accent.0, t.accent.1, t.accent.2),
     }
 }

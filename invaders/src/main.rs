@@ -343,7 +343,7 @@ fn ui(f: &mut Frame, app: &App) {
     let accent = Color::Rgb(t.accent.0, t.accent.1, t.accent.2);
     let ok = Color::Rgb(t.good.0, t.good.1, t.good.2);
     let ko = Color::Rgb(t.ko.0, t.ko.1, t.ko.2);
-    let soft = if dark { Color::Rgb(201, 187, 209) } else { Color::Rgb(110, 90, 117) };
+    let soft = if dark { Color::Rgb(201, 187, 209) } else { Color::Rgb(75, 65, 85) };
     let title_s = Style::default().fg(accent).add_modifier(Modifier::BOLD);
     let hud_s = Style::default().fg(soft);
     let msg_s = Style::default().fg(accent).add_modifier(Modifier::BOLD);
