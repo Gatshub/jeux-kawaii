@@ -25,6 +25,7 @@ pour tout.
 ├── motus/              # Motus (TUI, ratatui)
 ├── fubuki/             # Fubuki (TUI, ratatui)
 ├── takuzu/             # Takuzu (TUI, ratatui)
+├── spacewar/           # Spacewar! (graphique, macroquad, 2 joueurs)
 ├── motus-rust/         # ancien motus standalone (→ remplacé par motus/)
 ├── motus-go/           # variante Go (référence comparaison)
 ├── motus-kawaii/       # variante Ruby (référence gameplay)
@@ -77,6 +78,20 @@ gouttière ✓/✗ par ligne et colonne, 3 niveaux.
 
 ```bash
 cargo run -p takuzu --release
+```
+
+### spacewar (graphique)
+
+Hommage au jeu de 1962 (PDP-1) : 2 joueurs sur le même clavier, une étoile
+centrale qui attire et tue, bords enveloppants, carburant limité,
+hyperspace risqué (1 chance sur 8 d'exploser). Premier à 5 victoires.
+Rendu vectoriel (macroquad), fenêtre redimensionnable (repère 1024×768 mis
+à l'échelle, HiDPI géré), couleur des vaisseaux et rémanence de phosphore
+au menu. J1 : A/D tourner, W pousser, S tirer, Q hyperspace. J2 : flèches,
+M hyperspace.
+
+```bash
+cargo run -p spacewar --release
 ```
 
 ### À venir
